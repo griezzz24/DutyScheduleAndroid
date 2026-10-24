@@ -1,0 +1,43 @@
+
+name: Build DutySchedule APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Extract project ZIP
+        run: |
+          mkdir project
+          unzip -q DutyScheduleAndroid_project.zip -d project
+          find project -type f \( -name settings.gradle -o -name settings.gradle.kts \)
+
+      - name: Build APK
+        run: |
+          ROOT=$(dirname "$(find project -type f \( -name settings.gradle -o -name settings.gradle.kts \) | head -n 1)")
+          if [ -z "$ROOT" ] || [ ! -f "$ROOT/gradlew" ]; then
+            echo "Не найден Gradle Wrapper или settings.gradle"
+            exit 1
+          fi
+          cd "$ROOT"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DutySchedule-APK
+          path: project/**/*.apk
+          if-no-files-found: error
